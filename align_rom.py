@@ -77,5 +77,9 @@ def align_rom(input_path, output_path, alignment=512):
         
     print(f"Aligned ROM created: {output_path} (Size: {rom_capacity} bytes)")
 
+import sys
 if __name__ == '__main__':
-    align_rom('korean_release_v1.nds', 'korean_aligned.nds')
+    if len(sys.argv) > 2:
+        align_rom(sys.argv[1], sys.argv[2])
+    else:
+        align_rom('korean_release_v1.nds', 'korean_aligned.nds')
