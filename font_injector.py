@@ -57,7 +57,7 @@ def main():
     font_16 = ImageFont.truetype('GalmuriMono7.ttf', 14)
     font_12 = ImageFont.truetype('GalmuriMono7.ttf', 12)
 
-    offset_16x16 = 0x1a3bc
+    offset_16x16 = 0x386F8 # 0x38604 (NFTR) + 0xe4 (PLGC) + 0x10 (header)
     offset_12x12 = 0x6fa18
 
     print(f"Injecting {len(mapping)} characters...")

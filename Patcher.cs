@@ -27,7 +27,7 @@ class Program
         Console.WriteLine("\n [!] patching...\n");
         
         string original = args.Length > 0 ? args[0] : "original.nds";
-        string patch = "korean_patch_v3.dat";
+        string patch = "korean_patch_v4.dat";
         string output = "korean_final.nds";
         
         if (!File.Exists("xdelta3.exe"))
