@@ -1,0 +1,36 @@
+# Nintendo DS ROMs and Binaries
+*.nds
+*.bin
+*.scd
+*.nftr
+*.bak
+
+# Extracted Game Data (Do not upload original game data)
+/data/
+/overlay/
+/pristine_data/
+/pristine_arm9/
+/temp_extract/
+/test_extract/
+/release/
+/ndstool_extracted/
+/xdelta_extracted/
+/temp_pristine/
+
+# Python Virtual Environment
+venv/
+__pycache__/
+*.pyc
+
+# Emulators and Tools
+Crystaltile2/
+melonDS/
+desmume-0.9.13-win64/
+*.zip
+*.exe
+
+# Large translation cache
+translation_cache.json
+
+# Fonts
+*.ttf
