@@ -47,6 +47,34 @@ def render_char(char, font, size):
     draw.text((x, y), char, font=font, fill=1)
     return img
 
+def pack_3bpp(img):
+    img_rot = img.rotate(-90)
+    bit_str = ''
+    for y in range(12):
+        for x in range(13):
+            # If width is 13 and we only render 12, the last column is 0
+            if x < 12 and img_rot.getpixel((x, y)):
+                bit_str += '111'
+            else:
+                bit_str += '000'
+    bit_str += '0000' # pad 156*3=468 bits to 472 bits
+    packed = bytearray()
+    for i in range(59):
+        chunk = bit_str[i*8:(i+1)*8]
+        packed.append(int(chunk, 2))
+    return packed
+
+def render_char(char, font, size):
+    img = Image.new('1', (size, size), 0)
+    draw = ImageDraw.Draw(img)
+    bbox = draw.textbbox((0, 0), char, font=font)
+    w = bbox[2] - bbox[0]
+    h = bbox[3] - bbox[1]
+    x = (size - w) // 2 - bbox[0]
+    y = (size - h) // 2 - bbox[1]
+    draw.text((x, y), char, font=font, fill=1)
+    return img
+
 def inject_font(rom_data):
     if not os.path.exists('korean_mapping.json'):
         print("korean_mapping.json not found!")
@@ -55,20 +83,21 @@ def inject_font(rom_data):
     with open('korean_mapping.json', 'r', encoding='utf-8') as f:
         mapping = json.load(f)
 
-    font_16 = ImageFont.truetype('GalmuriMono7.ttf', 14)
+    font_12 = ImageFont.truetype('GalmuriMono7.ttf', 12)
     
-    # arm9 offset in ROM is at 0x20
     arm9_offset = struct.unpack('<I', rom_data[0x20:0x24])[0]
-    # The font offset inside arm9.bin is 0x1A3BC
-    rom_font_offset = arm9_offset + 0x1a3bc
+    # The real font NFTR is at 0x87e80 in arm9.bin
+    # PLGC block is at 0x87eac
+    # PLGC header is 16 bytes, so pixel data starts at 0x87ebc
+    font_base_offset = arm9_offset + 0x87ebc
     
-    print(f"Injecting {len(mapping)} font characters directly into ROM at offset 0x{rom_font_offset:X}...")
+    print(f"Injecting {len(mapping)} 3BPP font characters into ROM at offset 0x{font_base_offset:X}...")
     for char, info in mapping.items():
         idx = info['font_index']
-        img_16 = render_char(char, font_16, 16)
-        packed_16 = pack_16x16(img_16)
-        pos = rom_font_offset + idx * 32
-        rom_data[pos:pos+32] = packed_16
+        img_12 = render_char(char, font_12, 12)
+        packed_59 = pack_3bpp(img_12)
+        pos = font_base_offset + idx * 59
+        rom_data[pos:pos+59] = packed_59
         
     return rom_data, True
 

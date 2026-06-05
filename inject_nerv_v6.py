@@ -36,13 +36,23 @@ def generate_bottom_screen_data(img_path):
     y = (192 - img.height) // 2
     canvas.paste(img, (x, y), img)
     
+    # Read original palette
+    with open('fresh_extract/data/cg_logo.bin', 'rb') as f:
+        orig_data = f.read()
+    import struct
+    global_h = struct.unpack('<I4I', orig_data[:20])
+    off2, off3 = global_h[3], global_h[4]
+    sec23 = orig_data[off2:off3] + orig_data[off3:]
+    header = struct.unpack('<4I', sec23[:16])
+    pal_offset = 16 + header[1]*4 + header[2]*4
+    pal_data = sec23[pal_offset:pal_offset+header[3]*4]
+    
     tiles = []
     tile_map = {}
     map_entries = []
     
-    # 8BPP Tiles
-    # Tile 0: Background color (Color 1)
-    blank_tile = bytes([0x01] * 64)
+    # Tile 0: Background color (Color 223 = 0xDF)
+    blank_tile = bytes([0xDF] * 64)
     tiles.append(blank_tile)
     tile_map[blank_tile] = 0
     
@@ -56,13 +66,11 @@ def generate_bottom_screen_data(img_path):
                     
                     r, g, b, a = canvas.getpixel((ix, iy))
                     
-                    # 0x02 = Black, 0x01 = Background (White)
-                    # If transparent OR very bright, make it white. Otherwise make it black.
                     brightness = (r + g + b) / 3
                     if a < 128 or brightness > 200:
-                        tile_data[py*8 + px] = 0x01
+                        tile_data[py*8 + px] = 0xDF  # White-ish
                     else:
-                        tile_data[py*8 + px] = 0x02
+                        tile_data[py*8 + px] = 0x11  # Green-ish dark (Index 17)
                         
             tile_bytes = bytes(tile_data)
             if tile_bytes not in tile_map:
@@ -81,19 +89,7 @@ def generate_bottom_screen_data(img_path):
         map_data.extend(struct.pack('<H', e))
     s2_lz2 = lz10.compress(map_data)
     
-    # Bottom Screen Palette (448 bytes = 224 colors)
-    pal_data = bytearray(448)
-    
-    # Fill with White
-    for i in range(224):
-        pal_data[i*2] = 0xFF
-        pal_data[i*2+1] = 0x7F
-        
-    # Color 2: Black
-    pal_data[2*2] = 0x00
-    pal_data[2*2+1] = 0x00
-    
-    return align4(s2_lz1), align4(s2_lz2), bytes(pal_data)
+    return align4(s2_lz1), align4(s2_lz2), pal_data
 
 def inject():
     new_sec01 = generate_top_screen_data()

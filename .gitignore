@@ -16,6 +16,7 @@
 /ndstool_extracted/
 /xdelta_extracted/
 /temp_pristine/
+/fresh_extract/
 
 # Python Virtual Environment
 venv/
