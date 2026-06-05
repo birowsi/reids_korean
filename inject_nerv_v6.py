@@ -70,7 +70,7 @@ def generate_bottom_screen_data(img_path):
                     if a < 128 or brightness > 200:
                         tile_data[py*8 + px] = 0xDF  # White-ish
                     else:
-                        tile_data[py*8 + px] = 0x11  # Green-ish dark (Index 17)
+                        tile_data[py*8 + px] = 0x01  # Force to Index 1 (will be black)
                         
             tile_bytes = bytes(tile_data)
             if tile_bytes not in tile_map:
@@ -88,6 +88,11 @@ def generate_bottom_screen_data(img_path):
     for e in map_entries:
         map_data.extend(struct.pack('<H', e))
     s2_lz2 = lz10.compress(map_data)
+    
+    # Force Index 1 to be Solid Black (BGR555 + Alpha = 0x8000)
+    pal_data = bytearray(pal_data)
+    pal_data[2] = 0x00
+    pal_data[3] = 0x80
     
     return align4(s2_lz1), align4(s2_lz2), pal_data
 

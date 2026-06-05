@@ -30,4 +30,4 @@ def encrypt_patch(pin, input_file, output_file):
     print(f"Successfully encrypted {input_file} to {output_file} using PIN: {pin}")
 
 if __name__ == '__main__':
-    encrypt_patch("0314", "korean_patch_v4.xdelta", "korean_patch_v4.dat")
+    encrypt_patch("0314", "korean_patch_v6.xdelta", "korean_patch_v6.dat")

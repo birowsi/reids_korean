@@ -35,3 +35,11 @@ translation_cache.json
 
 # Fonts
 *.ttf
+
+# Patch files
+*.dat
+*.xdelta
+*.meta
+
+# Font folders
+Galmuri/
