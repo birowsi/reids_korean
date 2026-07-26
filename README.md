@@ -26,12 +26,14 @@ pip install cryptography
 ```bash
 python import_from_csv.py
 python text_packer.py
+python validate_project.py
 ```
 
 ### 3. 롬 리빌드
-번역된 폰트 파일(`font.nftr`)과 변경된 에셋들을 포함하여 `ndstool`로 최종 롬(`rei.nds`)을 리빌드합니다.
+번역된 폰트와 변경된 에셋을 포함하여 최종 롬(`rei.nds`)을 리빌드합니다.
+빌드 스크립트는 작업용 `*.bak` 파일을 임시 스테이징 디렉터리에서 자동으로 제외합니다.
 ```bash
-ndstool.exe -c rei.nds -9 arm9.bin -7 arm7.bin -y9 y9.bin -y7 y7.bin -d data -y overlay -t banner.bin -h header.bin
+python build_rom.py
 ```
 
 ### 4. 배포용 패치 생성 및 암호화
@@ -50,6 +52,18 @@ python encrypt_patch.py
 compile_patcher.bat
 ```
 빌드가 완료되면 `Korean_Patcher.exe`, `korean_patch_v6.dat`, `xdelta3.exe` 파일을 함께 압축하여 배포합니다.
+
+## 릴리스 전 필수 검증
+
+아래 명령은 미번역 문자열, 제어 문자열 훼손, 지원하지 않는 문자, 바이트 초과,
+SCD 범위 밖 변경을 모두 검사합니다. 오류가 하나라도 있으면 릴리스하지 마세요.
+
+```bash
+python import_from_csv.py
+python text_packer.py
+python validate_project.py
+python build_rom.py
+```
 
 ## 크레딧 및 라이선스
 - 게임 내 한글 폰트는 [갈무리(Galmuri)](https://galmuri.quiple.dev/) 폰트를 변환하여 사용했습니다. (SIL Open Font License)

@@ -1,4 +1,5 @@
 import hashlib
+import argparse
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import os
@@ -27,7 +28,12 @@ def encrypt_patch(pin, input_file, output_file):
     with open(output_file, 'wb') as f:
         f.write(iv + ciphertext)
         
-    print(f"Successfully encrypted {input_file} to {output_file} using PIN: {pin}")
+    print(f"Successfully encrypted {input_file} to {output_file}.")
 
 if __name__ == '__main__':
-    encrypt_patch("0314", "korean_patch_v6.xdelta", "korean_patch_v6.dat")
+    parser = argparse.ArgumentParser(description="Encrypt the release xdelta patch.")
+    parser.add_argument("--pin", default="0314")
+    parser.add_argument("--input", default="korean_patch_v6.xdelta")
+    parser.add_argument("--output", default="korean_patch_v6.dat")
+    args = parser.parse_args()
+    encrypt_patch(args.pin, args.input, args.output)

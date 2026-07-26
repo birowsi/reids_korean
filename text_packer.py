@@ -6,6 +6,8 @@ import json
 
 import glob
 
+from translation_codec import encode_fixed_length, load_korean_mapping
+
 
 
 def dynamic_repack_scd(original_scd_path, jsonl_path, output_path):
@@ -96,19 +98,11 @@ def dynamic_repack_scd(original_scd_path, jsonl_path, output_path):
 
     
 
-    try:
-
-        with open('nftr_korean_mapping.json', 'r', encoding='utf-8') as mf:
-
-            korean_mapping = json.load(mf)
-
-    except:
-
-        korean_mapping = {}
+    korean_mapping = load_korean_mapping('nftr_korean_mapping.json')
 
 
 
-    target_jsonl = 'translated_texts.jsonl' if os.path.exists('translated_texts.jsonl') else jsonl_path
+    target_jsonl = jsonl_path
 
 
 
@@ -141,28 +135,11 @@ def dynamic_repack_scd(original_scd_path, jsonl_path, output_path):
                     text_to_encode = item["translated_text"]
 
                     expected_len = len(old_bytes)
-                    new_bytes_list = bytearray()
-                    for c in text_to_encode:
-                        if c in korean_mapping:
-                            sjis_int = korean_mapping[c]['sjis']
-                            char_bytes = [(sjis_int >> 8) & 0xFF, sjis_int & 0xFF]
-                        else:
-                            try:
-                                char_bytes = list(c.encode('shift_jis'))
-                            except:
-                                char_bytes = [ord('?')]
-                                
-                        if len(new_bytes_list) + len(char_bytes) <= expected_len:
-                            new_bytes_list.extend(char_bytes)
-                        else:
-                            break
-                            
-                    # Pad to exact expected_len with 0x00
-                    diff = expected_len - len(new_bytes_list)
-                    for _ in range(diff):
-                        new_bytes_list.append(0x00)
-
-                    new_bytes = bytes(new_bytes_list)
+                    new_bytes = encode_fixed_length(
+                        text_to_encode,
+                        expected_len,
+                        korean_mapping,
+                    )
 
                 else:
 
@@ -228,7 +205,9 @@ def dynamic_repack_scd(original_scd_path, jsonl_path, output_path):
 
             else:
 
-                print(f"Warning: Data mismatch in block {b_idx} at relative offset {ro}")
+                raise ValueError(
+                    f"Data mismatch in block {b_idx} at relative offset {ro}"
+                )
 
                 
 

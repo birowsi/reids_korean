@@ -14,30 +14,20 @@ def crc16(data):
 def fix_header_crc(rom_path):
     with open(rom_path, 'r+b') as f:
         rom = bytearray(f.read())
-        
-        # Recalculate ARM9 CRC
-        arm9_offset = struct.unpack('<I', rom[0x20:0x24])[0]
-        arm9_size = struct.unpack('<I', rom[0x2C:0x30])[0]
-        
-        print(f"ARM9 Offset: 0x{arm9_offset:X}, Size: 0x{arm9_size:X}")
-        arm9_data = rom[arm9_offset:arm9_offset+arm9_size]
-        new_arm9_crc = crc16(arm9_data)
-        
-        old_arm9_crc = struct.unpack('<H', rom[0x6C:0x6E])[0]
-        print(f"Old ARM9 CRC: 0x{old_arm9_crc:04X}, New ARM9 CRC: 0x{new_arm9_crc:04X}")
-        
-        # Update ARM9 CRC in header
-        rom[0x6C:0x6E] = struct.pack('<H', new_arm9_crc)
-        
-        # Recalculate Header CRC (covers offset 0x00 to 0x15D)
+
+        # 0x6C is the secure-area CRC field, not an ARM9 checksum. Preserve it.
+        # Recalculate the Nintendo logo and header checksums only.
+        old_logo_crc = struct.unpack('<H', rom[0x15C:0x15E])[0]
+        new_logo_crc = crc16(rom[0xC0:0x15C])
+        print(f"Old Logo CRC: 0x{old_logo_crc:04X}, New Logo CRC: 0x{new_logo_crc:04X}")
+        rom[0x15C:0x15E] = struct.pack('<H', new_logo_crc)
+
         header_data = rom[0x00:0x15E]
         new_header_crc = crc16(header_data)
-        
         old_header_crc = struct.unpack('<H', rom[0x15E:0x160])[0]
         print(f"Old Header CRC: 0x{old_header_crc:04X}, New Header CRC: 0x{new_header_crc:04X}")
-        
         rom[0x15E:0x160] = struct.pack('<H', new_header_crc)
-        
+
         f.seek(0)
         f.write(rom)
 

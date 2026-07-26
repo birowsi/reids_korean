@@ -3,14 +3,16 @@ import os
 import csv
 import sys
 
+from translation_codec import TextEncodingError, encode_text, load_korean_mapping
+
+
 def main():
     sys.stdout.reconfigure(encoding='utf-8')
     try:
-        with open('nftr_korean_mapping.json', 'r', encoding='utf-8') as mf:
-            korean_mapping = json.load(mf)
+        korean_mapping = load_korean_mapping('nftr_korean_mapping.json')
     except Exception as e:
         print("Error loading mapping:", e)
-        return
+        raise SystemExit(1)
 
     exceeding_count = 0
     total_lines = 0
@@ -31,15 +33,12 @@ def main():
                 
             max_bytes = len(bytes.fromhex(raw_hex))
             
-            calculated_len = 0
-            for c in translated:
-                if c in korean_mapping:
-                    calculated_len += 2
-                else:
-                    try:
-                        calculated_len += len(c.encode('shift_jis'))
-                    except:
-                        calculated_len += 1 # '?'
+            try:
+                calculated_len = len(encode_text(translated, korean_mapping))
+            except TextEncodingError as exc:
+                exceeding_count += 1
+                print(f"Line {i}: {exc}")
+                continue
             
             if calculated_len > max_bytes:
                 exceeding_count += 1
@@ -63,6 +62,7 @@ def main():
             writer.writeheader()
             writer.writerows(exceeding_rows)
         print("Saved exceeding lines to exceeding_lines.csv")
+        raise SystemExit(1)
 
 if __name__ == '__main__':
     main()

@@ -7,6 +7,32 @@ using System.Threading.Tasks;
 
 class Program
 {
+    static string GetSha256(string path)
+    {
+        using (SHA256 sha256 = SHA256.Create())
+        using (FileStream stream = File.OpenRead(path))
+        {
+            return BitConverter.ToString(sha256.ComputeHash(stream))
+                .Replace("-", "")
+                .ToLowerInvariant();
+        }
+    }
+
+    static void DeletePartialOutput(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Preserve the original patching error if cleanup also fails.
+        }
+    }
+
     static void Main(string[] args)
     {
         Console.WriteLine("======================================================");
@@ -35,17 +61,32 @@ class Program
             Console.WriteLine(" [error] xdelta3.exe missing");
             Console.WriteLine("\n press enter to exit");
             Console.ReadLine();
+            Environment.ExitCode = 1;
             return;
         }
         
         if (!File.Exists(original))
         {
-            Console.WriteLine(string.Format(" [error] rom missing", original));
+            Console.WriteLine(string.Format(" [error] rom missing ({0})", original));
             Console.WriteLine(" \n fix:");
             Console.WriteLine(" 1. rename japanese rom to 'original.nds'");
             Console.WriteLine(" 2. or drag and drop rom to this exe");
             Console.WriteLine("\n press enter to exit");
             Console.ReadLine();
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        Console.WriteLine(" verifying original rom......");
+        if (!string.Equals(
+            GetSha256(original),
+            PatchManifest.ExpectedSourceSha256,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine(" [error] unsupported or modified original rom");
+            Console.WriteLine("\n press enter to exit");
+            Console.ReadLine();
+            Environment.ExitCode = 1;
             return;
         }
         
@@ -54,6 +95,7 @@ class Program
             Console.WriteLine(string.Format(" [error] patch missing ({0})", patch));
             Console.WriteLine("\n press enter to exit");
             Console.ReadLine();
+            Environment.ExitCode = 1;
             return;
         }
         
@@ -64,6 +106,7 @@ class Program
         {
             Console.WriteLine(" [error] corrupted dat file.");
             Console.ReadLine();
+            Environment.ExitCode = 1;
             return;
         }
         
@@ -93,6 +136,7 @@ class Program
         {
             Console.WriteLine("\n [!] pin invalid or file corrupted!");
             System.Threading.Thread.Sleep(3000);
+            Environment.ExitCode = 1;
             return;
         }
         
@@ -104,6 +148,7 @@ class Program
         psi.UseShellExecute = false;
         psi.RedirectStandardInput = true;
         psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
         psi.CreateNoWindow = true;
         
         try
@@ -116,6 +161,7 @@ class Program
                 process.StandardInput.BaseStream.Write(decryptedPatch, 0, decryptedPatch.Length);
                 process.StandardInput.Close();
             });
+            Task<string> errorTask = Task.Run(() => process.StandardError.ReadToEnd());
             
             // Read stdout to file
             using (FileStream fs = new FileStream(output, FileMode.Create, FileAccess.Write))
@@ -125,11 +171,31 @@ class Program
             
             writeTask.Wait();
             process.WaitForExit();
+            string errorOutput = errorTask.Result;
             
             if (process.ExitCode != 0)
             {
+                DeletePartialOutput(output);
                 Console.WriteLine("\n [error] patch failed! (wrong rom?)");
+                if (!string.IsNullOrWhiteSpace(errorOutput))
+                {
+                    Console.WriteLine(errorOutput.Trim());
+                }
                 Console.ReadLine();
+                Environment.ExitCode = 1;
+                return;
+            }
+
+            Console.WriteLine(" verifying output rom......");
+            if (!string.Equals(
+                GetSha256(output),
+                PatchManifest.ExpectedTargetSha256,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                DeletePartialOutput(output);
+                Console.WriteLine("\n [error] output verification failed");
+                Console.ReadLine();
+                Environment.ExitCode = 1;
                 return;
             }
             
@@ -140,8 +206,10 @@ class Program
         }
         catch (Exception ex)
         {
+            DeletePartialOutput(output);
             Console.WriteLine("\n [error] runtime error: " + ex.Message);
             Console.ReadLine();
+            Environment.ExitCode = 1;
         }
     }
 }
