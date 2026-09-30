@@ -6,13 +6,14 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from import_from_csv import canonical_source_text
+from import_from_csv import canonical_source_text, restore_source_line_endings
+from repair_translation_review import REVIEW_FIXES, visible_count
 from translation_codec import TextEncodingError, encode_fixed_length, encode_text
 from translation_codec import load_korean_mapping
 
 
 ROOT = Path(__file__).resolve().parent
-LITERAL_CONTROL_PATTERN = re.compile(r"\\[A-Za-z0-9]+")
+LITERAL_CONTROL_PATTERN = re.compile(r"\\+[A-Za-z0-9]+")
 JAPANESE_PATTERN = re.compile(r"[\u3040-\u30ff\u3400-\u9fff]")
 ALLOWED_JAPANESE_PUNCTUATION = {"・", "ー"}
 KNOWN_BRACKET_STYLE_EXCEPTIONS = {
@@ -141,6 +142,11 @@ def validate():
 
         source_text = original["text"]
         translated_text = localized["translated_text"]
+        csv_row = csv_by_source.get(canonical_source_text(source_text))
+        if csv_row is not None and translated_text != restore_source_line_endings(
+            source_text, csv_row["Korean"]
+        ):
+            errors.append(f"JSONL line {index}: translation is stale relative to CSV.")
 
         source_escapes = LITERAL_CONTROL_PATTERN.findall(source_text)
         translated_escapes = LITERAL_CONTROL_PATTERN.findall(translated_text)
@@ -197,6 +203,15 @@ def validate():
             errors.append(f"ID {row['ID']}: 三尉 is not translated as 소위.")
         if "一尉" in source and "대위" not in translation:
             errors.append(f"ID {row['ID']}: 一尉 is not translated as 대위.")
+        for japanese, korean in (("二尉", "중위"), ("三佐", "소령")):
+            if japanese in source and korean not in translation:
+                errors.append(f"ID {row['ID']}: {japanese} is not translated as {korean}.")
+        if "三佐" in source and re.search(r"소령(?:가|와|는|를|로)", translation):
+            errors.append(f"ID {row['ID']}: wrong particle after 소령.")
+        if row["ID"] in REVIEW_FIXES and visible_count(translation) > visible_count(source):
+            errors.append(f"ID {row['ID']}: reviewed text exceeds source character count.")
+        if len(re.findall(r"[A-Za-z]", translation)) >= 20 and not re.search(r"[가-힣]", translation):
+            errors.append(f"ID {row['ID']}: possible untranslated English sentence.")
 
         bracket_differences, style_only = classify_bracket_difference(row)
         if bracket_differences:

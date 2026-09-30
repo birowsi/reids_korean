@@ -105,6 +105,9 @@ def repair_rows(rows):
         if row_id in MANUAL_FIXES:
             repaired = MANUAL_FIXES[row_id]
 
+        from repair_translation_review import reviewed_translation
+        repaired = reviewed_translation(row, repaired)
+
         if repaired != original:
             row["Korean"] = repaired
             changed.append(row_id)

@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent
 CSV_PATH = ROOT / "translation_work.csv"
 EXTRACTED_PATH = ROOT / "extracted_texts.jsonl"
 MAPPING_PATH = ROOT / "nftr_korean_mapping.json"
-LITERAL_CONTROL_PATTERN = re.compile(r"\\[A-Za-z0-9]+")
+LITERAL_CONTROL_PATTERN = re.compile(r"\\+[A-Za-z0-9]+")
 
 
 # These are intentionally explicit. Several source slots are too small for a
@@ -318,6 +318,9 @@ def main():
             )
         replacement = normalize_speaker_spacing(row["Japanese"], replacement)
         replacement = normalize_title_quotes(row["Japanese"], replacement)
+        # Keep later reviewed wording/ranks authoritative when rerunning this tool.
+        from repair_translation_review import reviewed_translation
+        replacement = reviewed_translation(row, replacement)
         if replacement is None or replacement == row["Korean"]:
             continue
         encoded_length, capacity = validate_replacement(

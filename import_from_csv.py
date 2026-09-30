@@ -32,10 +32,10 @@ def restore_source_line_endings(source_text, translated_text):
 def main():
     if not os.path.exists(CSV_FILE):
         print(f"Error: {CSV_FILE} not found.")
-        return
+        raise SystemExit(1)
         
     translation_map = {}
-    with open(CSV_FILE, 'r', encoding='utf-8-sig') as f:
+    with open(CSV_FILE, 'r', encoding='utf-8-sig', newline='') as f:
         reader = csv.DictReader(f)
         for row in reader:
             orig_text = row.get('Japanese', '')

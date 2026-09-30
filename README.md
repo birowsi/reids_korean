@@ -51,19 +51,41 @@ python encrypt_patch.py
 ```cmd
 compile_patcher.bat
 ```
-빌드가 완료되면 `Korean_Patcher.exe`, `korean_patch_v6.dat`, `xdelta3.exe` 파일을 함께 압축하여 배포합니다.
+빌드가 완료되면 `Korean_Patcher.exe`, `korean_patch_v6.dat`, `xdelta3.exe`,
+`PATCH_README.txt` 파일을 함께 압축하여 배포합니다. 원본 ROM은 포함하지 않습니다.
+
+패처는 실행 파일 폴더에서 보조 파일을 찾고 결과 `rei.nds`도 그 폴더에 생성합니다.
+입력과 출력 경로가 같으면 거부하며, 임시 결과를 SHA-256 검증한 뒤에만 기존 결과를
+교체합니다. 실패한 패치 작업으로 원본이나 기존 결과 ROM을 덮어쓰지 않습니다.
 
 ## 릴리스 전 필수 검증
 
 아래 명령은 미번역 문자열, 제어 문자열 훼손, 지원하지 않는 문자, 바이트 초과,
-SCD 범위 밖 변경을 모두 검사합니다. 오류가 하나라도 있으면 릴리스하지 마세요.
+CSV/JSONL 동기화, 한국식 계급, SCD 범위 밖 변경을 모두 검사합니다.
+이번 검수로 보정한 문장은 원문 표시 글자수 이내인지도 검사합니다.
+기존 전체 번역의 단순 글자수 일치나 모든 화면의 표시 폭을 보증하는 검사는 아닙니다.
+오류가 하나라도 있으면 릴리스하지 마세요.
 
 ```bash
 python import_from_csv.py
 python text_packer.py
 python validate_project.py
 python build_rom.py
+python fix_crc.py rei.nds
 ```
+
+검수 보정 재적용(자동 잘라내기 없음):
+```bash
+python repair_translation_review.py --write
+```
+
+패치와 실행 파일을 다시 만든 뒤 사용자용 패처 회귀 테스트:
+```bash
+python test_release_safety.py
+```
+정상 적용/기존 결과 교체, 다른 작업 폴더·한글 경로, 입력=출력,
+잘못된 ROM/PIN/패치 데이터, 디코더 실패, 결과 해시 불일치 시 보존을 검사합니다.
+테스트에는 `cryptography`와 Python 3.11+가 필요합니다. 실제 플레이 QA를 대체하지 않습니다.
 
 ## 크레딧 및 라이선스
 - 게임 내 한글 폰트는 [갈무리(Galmuri)](https://galmuri.quiple.dev/) 폰트를 변환하여 사용했습니다. (SIL Open Font License)

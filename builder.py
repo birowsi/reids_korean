@@ -15,7 +15,7 @@ def get_sha256(filepath):
 def build_patch(original_rom, modified_rom, patch_name):
     if not os.path.exists("xdelta3.exe"):
         print("오류: xdelta3.exe 파일이 같은 폴더에 필요합니다.")
-        return
+        raise FileNotFoundError("xdelta3.exe is required")
         
     print("패치 파일을 생성 중입니다...")
     # xdelta3 명령어: xdelta3 -e -s [원본] [수정본] [패치파일]
